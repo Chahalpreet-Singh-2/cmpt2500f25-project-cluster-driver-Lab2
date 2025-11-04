@@ -1,0 +1,25 @@
+# Requirements.txt
+
+# Core ML and Data Science
+numpy==2.3.4
+pandas==2.3.3
+scikit-learn==1.7.2
+# Model Persistence
+joblib==1.5.2
+# Visualization
+matplotlib==3.10.7
+seaborn==0.13.2
+plotly==6.3.1
+# Advanced Models
+xgboost==3.1.1
+catboost==1.2.8
+# Configuration
+PyYAML==6.0.3
+# Data Version Control (DagsHub remote)
+dagshub==0.6.3
+dvc-s3==3.2.2
+# Testing
+pytest==8.4.2
+pytest-cov==7.0.0
+# Development
+jupyter==1.1.1
