@@ -1,4 +1,5 @@
 from pathlib import Path
+import numpy as np
 import pandas as pd
 from src.utils.helpers import get_project_root, load_config, get_logger, resolve_under_root
 from src.utils.model_utils import KProtoWrapper
@@ -6,6 +7,17 @@ from src.utils.model_utils import KProtoWrapper
 cfg = with_overrides(args.config, {"train": {"n_clusters": args.k}} if args.k else None)
 in_parquet = resolve_under_root(cfg["train"]["in_parquet"])
 log = get_logger()
+
+def load_data(path: str) -> np.ndarray:
+    p = Path(path)
+    if p.suffix == ".parquet":
+        return pd.read_parquet(p).to_numpy()
+    elif p.suffix == ".csv":
+        return pd.read_csv(p).to_numpy()
+    elif p.suffix == ".npy":
+        return np.load(p)
+    else:
+        raise ValueError(f"Unsupported data format: {p.suffix}")
 
 def main():
     root = get_project_root()
