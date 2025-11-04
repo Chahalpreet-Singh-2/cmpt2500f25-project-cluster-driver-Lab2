@@ -1,0 +1,697 @@
+# **2**
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.decomposition import PCA
+
+# Specify the path to your CSV file
+csv_file_path = 'CBB_Listings.csv'
+
+# Read the dataset into a Pandas DataFrame
+df = pd.read_csv(csv_file_path,on_bad_lines='skip')
+
+df.head()
+
+df.info()
+
+#Droping columns
+df = df.drop(['dealer_email', 'dealer_phone', 'has_leather', 'has_navigation'], axis=1)
+
+df.isnull().sum()
+
+# Convert 'listing_first_date' to datetime
+df['listing_first_date'] = pd.to_datetime(df['listing_first_date'])
+
+# Calculate 'listing_dropoff_date' using days_on_market columns
+df['listing_dropoff_date'] = df['listing_first_date'] + pd.to_timedelta(df['days_on_market'], unit='D')
+
+#updating ''listing_dropoff_date' to datetime
+df['listing_dropoff_date'] = pd.to_datetime(df['listing_dropoff_date'])
+
+# Display the updated DataFrame
+df[['listing_first_date', 'days_on_market', 'listing_dropoff_date']].head()
+
+#Calculating the number of 0s in 'price' column
+num_zeros = (df['price'] == 0).sum()
+print(f"Number of 0s in 'price' column: {num_zeros}")\
+
+#calculating the median of the 'price' column excluding 0s
+median_price = df[df['price'] != 0]['price'].median()
+
+#filling the 0s with the median
+df.loc[df['price'] == 0, 'price'] = median_price
+
+#Displaying price
+df['price']
+
+df.isnull().sum()
+
+# Replace the nulls in series, exterior_color, exterior_color_category, interior_color, interior_color_category with mode
+df['series'].fillna(df['series'].mode()[0])
+df['exterior_color'].fillna(df['exterior_color'].mode()[0])
+df['exterior_color_category'].fillna(df['exterior_color_category'].mode()[0])
+df['interior_color'].fillna(df['interior_color'].mode()[0])
+df['interior_color_category'] = df['interior_color_category'].fillna(df['interior_color_category'].mode()[0])
+
+# Replacing numerical values in Certified column with categorical ones
+df['certified'] = df['certified'].replace({0: 'No', 1: 'Yes'})
+df['certified']
+
+#Handling missing values in 'wheelbase_from_vin'
+
+#counting values in wheelbase
+
+# values less than 500
+less_than_500 = (df['wheelbase_from_vin'] < 500).sum()
+print(f"Number of values less than 500 in 'wheelbase_from_vin': {less_than_500}")
+
+#values less than 1000
+less_than_1000 = (df['wheelbase_from_vin'] < 1000).sum()
+print(f"Number of values less than 1000 in 'wheelbase_from_vin': {less_than_1000}")
+
+# values less than 2000
+less_than_2000 = (df['wheelbase_from_vin'] < 2000).sum()
+print(f"Number of values less than 2000 in 'wheelbase_from_vin': {less_than_2000}")
+
+#values greater than 2000
+greater_than_2000 = (df['wheelbase_from_vin'] > 2000).sum()
+print(f"Number of values greater than 2000 in 'wheelbase_from_vin': {greater_than_2000}")
+
+df['wheelbase_from_vin'].describe()
+
+
+#Replace 0s with NaN
+df['wheelbase_from_vin'] = df['wheelbase_from_vin'].replace(0, np.nan)
+
+#imputaion with median:
+df['wheelbase_from_vin'] = df['wheelbase_from_vin'].fillna(df['wheelbase_from_vin'].median())
+
+df['wheelbase_from_vin']
+
+df.info()
+
+#Categorical features from data for table and bar charts
+categorical_features = ['series', 'exterior_color', 'exterior_color_category',
+                        'interior_color', 'interior_color_category',
+                        'drivetrain_from_vin', 'transmission_from_vin',
+                        'fuel_type_from_vin', 'engine_from_vin', 'make', 'stock_type']
+
+for feature in categorical_features:
+  print(f"Frequency Table for {feature}:\n")
+  print(df[feature].value_counts())
+  print("\n" + '-'*30 +  "\n")
+
+unique_postal_code = df['dealer_postal_code'].unique()
+print(f"Number of unique values: {len(unique_postal_code)}")
+
+import geopy
+import pandas as pd
+from geopy.extra.rate_limiter import RateLimiter # to avoid overloading the server
+from functools import lru_cache #used to cache the results
+
+postal_codes = pd.read_csv('POSTAL_CODE.csv')  # LOad POSTAL code FILE
+print(postal_codes.head())
+
+def remove_outliers_iqr(df, column):
+    Q1 = df[column].quantile(0.25)
+    Q3 = df[column].quantile(0.75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    return df[(df[column] >= lower_bound) & (df[column] <= upper_bound)]
+
+# Apply IQR method to key numerical columns
+columns_to_check = ['price', 'mileage', 'msrp', 'wheelbase_from_vin', 'location_score']
+for col in columns_to_check:
+    df = remove_outliers_iqr(df, col)
+
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
+
+# Choose a specific column to check for outliers (e.g., 'price')
+column = 'price'
+
+# Calculate IQR and identify outliers
+Q1 = df[column].quantile(0.25)
+Q3 = df[column].quantile(0.75)
+IQR = Q3 - Q1
+lower_bound = Q1 - 1.5 * IQR
+upper_bound = Q3 + 1.5 * IQR
+
+# Identify outliers
+outliers = df[(df[column] < lower_bound) | (df[column] > upper_bound)]
+
+# Print outliers information
+print("Outliers detected:")
+print(outliers)
+
+# Visualize the boxplot for the column
+plt.figure(figsize=(8, 6))
+sns.boxplot(x=df[column])
+plt.title(f'Boxplot of {column} (Outliers Identified)')
+plt.show()
+
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
+
+# Choose a specific column to check for outliers (e.g., 'price')
+column = 'days_on_market'
+
+# Calculate IQR and identify outliers
+Q1 = df[column].quantile(0.25)
+Q3 = df[column].quantile(0.75)
+IQR = Q3 - Q1
+lower_bound = Q1 - 1.5 * IQR
+upper_bound = Q3 + 1.5 * IQR
+
+# Identify outliers
+outliers = df[(df[column] < lower_bound) | (df[column] > upper_bound)]
+
+# Print outliers information
+print("Outliers detected:")
+print(outliers)
+
+# Visualize the boxplot for the column
+plt.figure(figsize=(8, 6))
+sns.boxplot(x=df[column])
+plt.title(f'Boxplot of {column} (Outliers Identified)')
+plt.show()
+
+
+#finding the outliers using z score on column days on market
+from scipy import stats
+import numpy as np
+#calculating the mean and standard deviation for the column days on market
+mean = np.mean(df['days_on_market'])
+std_dev = np.std(df['days_on_market'])
+
+#calculating the z score for days on market
+df['z_score'] = (df['days_on_market'] - mean) / std_dev
+threshold = 3
+outliers = df[df['z_score'].abs() > threshold]
+print(f"Z-scores:\n{df[['listing_id', 'days_on_market', 'z_score']].head()}")
+print(f"\nOutliers:\n{outliers[['listing_id', 'days_on_market', 'z_score']]}")
+#PLOTTING THE Boxplot for z score and outlier
+plt.figure(figsize=(8, 6))
+sns.boxplot(x=df['days_on_market'])
+plt.title(f'Boxplot of days_on_market (Outliers Identified)')
+plt.show()
+
+
+
+!pip install plotly
+import plotly.express as px
+# Scatter plot for Price vs Days on Market
+fig = px.scatter(df,
+                 x='days_on_market',  # X-axis: Days on Market
+                 y='price',           # Y-axis: Price
+                 hover_name='listing_heading',  # Information to show on hover
+                 hover_data=['dealer_name', 'dealer_city', 'dealer_province'],  # Additional info on hover
+                 title="Price vs Days on Market of Listings",
+                 labels={'days_on_market': 'Days on Market', 'price': 'Price (in $)'})
+
+# Display the scatter plot
+fig.show()
+
+
+import plotly.graph_objects as go
+
+# Assuming df contains the data
+# Generate the base pie chart data
+pie_chart_data = df['make'].value_counts(normalize=True).reset_index()
+pie_chart_data.columns = ['make', 'percentage']
+pie_chart_data['percentage'] *= 100  # Convert proportions to percentages
+
+# Store a copy of the original data before filtering
+original_pie_chart_data = pie_chart_data.copy()
+
+# Filter out makes with less than 3% and group them under 'Other'
+other_makes = original_pie_chart_data[original_pie_chart_data['percentage'] < 3]['make'].tolist()
+other_percentages = original_pie_chart_data[original_pie_chart_data['percentage'] < 3]['percentage'].tolist()
+other_percentage = sum(other_percentages)
+
+pie_chart_data = pie_chart_data[pie_chart_data['percentage'] >= 3]
+pie_chart_data = pd.concat([pie_chart_data, pd.DataFrame([{'make': 'Other', 'percentage': other_percentage}])], ignore_index=True)
+
+
+# Prepare hierarchical data for the Sunburst chart
+labels = pie_chart_data['make'].tolist() + other_makes
+parents = [''] * len(pie_chart_data) + ['Other'] * len(other_makes)
+values = pie_chart_data['percentage'].tolist() + other_percentages
+
+# Create Sunburst chart
+fig = go.Figure(go.Sunburst(
+    labels=labels,
+    parents=parents,
+    values=values,
+    branchvalues="total",
+    textinfo="label+percent parent"
+))
+
+# Update layout for better display
+fig.update_layout(
+    title="Interactive Distribution of Car Makes (Percentage Proportions)",
+    margin=dict(t=50, l=0, r=0, b=0)
+)
+
+fig.show()
+
+#  Calculate the frequency of each 'make' and find the most and least popular makes
+make_counts = df['make'].value_counts()
+
+# Find the most popular (first) and least popular (last) makes
+most_popular_make = make_counts.idxmax()
+least_popular_make = make_counts.idxmin()
+
+# Step 3: Filter the DataFrame to include only the rows for the most and least popular makes
+df_filtered = df[df['make'].isin([most_popular_make, least_popular_make])]
+
+# Step 4: Create the histogram for 'mileage' column for most and least popular makes
+fig = px.histogram(df_filtered,
+                   x='mileage',  # Variable for the x-axis (Mileage)
+                   nbins=30,      # Number of bins in the histogram
+                   title="Distribution of Car Mileage (Most and Least Popular Makes)",
+                   labels={'mileage': 'Mileage (in km)'},
+                   color='make',  # Color by 'make' to differentiate between the two
+                   template='plotly_dark')
+
+# Step 5: Show the histogram
+fig.show()
+
+
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Assuming 'df' is your original DataFrame with 'mileage' and 'price' columns
+
+# Calculate IQR and identify outliers for 'mileage'
+Q1_mileage = df['mileage'].quantile(0.25)
+Q3_mileage = df['mileage'].quantile(0.75)
+IQR_mileage = Q3_mileage - Q1_mileage
+lb1 = Q1_mileage - 1.5 * IQR_mileage
+ub1 = Q3_mileage + 1.5 * IQR_mileage
+outliers_feature1 = df[(df['mileage'] < lb1) | (df['mileage'] > ub1)]
+
+# Calculate IQR and identify outliers for 'price'
+Q1_price = df['price'].quantile(0.25)
+Q3_price = df['price'].quantile(0.75)
+IQR_price = Q3_price - Q1_price
+lb2 = Q1_price - 1.5 * IQR_price
+ub2 = Q3_price + 1.5 * IQR_price
+outliers_feature2 = df[(df['price'] < lb2) | (df['price'] > ub2)]
+
+# Create a new DataFrame 'df_simple_outliers' containing only the relevant columns
+df_simple_outliers = df[['mileage', 'price']].copy()
+
+# Set Seaborn style for better visuals
+sns.set(style="whitegrid")
+
+# Boxplot for 'mileage' with IQR bounds
+plt.figure(figsize=(10, 6))
+sns.boxplot(x=df_simple_outliers['mileage'], color='lightseagreen')
+plt.axvline(lb1, color='darkred', linestyle='--', label='Lower Bound')
+plt.axvline(ub1, color='darkblue', linestyle='--', label='Upper Bound')
+plt.title('Boxplot for Mileage with IQR Bounds', fontsize=16, fontweight='bold', color='darkblue')
+plt.xlabel('Mileage (in km)', fontsize=14)
+plt.ylabel('Frequency', fontsize=14)
+plt.legend(loc='upper left', fontsize=12)
+plt.grid(True, linestyle='--', alpha=0.6)
+plt.tight_layout()
+plt.show()
+
+# Boxplot for 'price' with IQR bounds
+plt.figure(figsize=(10, 6))
+sns.boxplot(x=df_simple_outliers['price'], color='cornflowerblue')
+plt.axvline(lb2, color='darkorange', linestyle='--', label='Lower Bound')
+plt.axvline(ub2, color='darkgreen', linestyle='--', label='Upper Bound')
+plt.title('Boxplot for Price with IQR Bounds', fontsize=16, fontweight='bold', color='darkblue')
+plt.xlabel('Price (in dollars)', fontsize=14)
+plt.ylabel('Frequency', fontsize=14)
+plt.legend(loc='upper left', fontsize=12)
+plt.grid(True, linestyle='--', alpha=0.6)
+plt.tight_layout()
+plt.show()
+
+# Scatter plot of 'mileage' vs 'price' with outliers highlighted
+plt.figure(figsize=(12, 8))
+sns.scatterplot(data=df_simple_outliers, x='mileage', y='price', color='darkslategray', alpha=0.5, s=50, label='Data Points')
+
+# Highlight outliers with different colors
+plt.scatter(outliers_feature1['mileage'], outliers_feature1['price'], color='firebrick', label='Outliers in Mileage', s=100, edgecolor='black', marker='o')
+plt.scatter(outliers_feature2['mileage'], outliers_feature2['price'], color='mediumvioletred', label='Outliers in Price', s=100, edgecolor='black', marker='o')
+
+# Add titles, axis labels, and grid
+plt.title('Scatter Plot of Mileage vs Price with Outliers Highlighted', fontsize=18, fontweight='bold', color='darkblue')
+plt.xlabel('Mileage (in km)', fontsize=14)
+plt.ylabel('Price (in dollars)', fontsize=14)
+plt.legend(loc='upper left', fontsize=12)
+plt.grid(True, linestyle='--', alpha=0.6)
+plt.tight_layout()
+plt.show()
+
+
+#plot a histrogram of dealer_city
+import plotly.express as px
+
+fig = px.histogram(df, x="dealer_city", y="price",
+                   histfunc="sum",  # Use 'sum' to aggregate total price for each city
+                   title="Total Price Distribution by Dealer City",
+                   labels={"price": "Total Price", "dealer_city": "Dealer City"},
+                   color_discrete_sequence=['darkgreen'])
+fig.show()
+
+import plotly.express as px
+import plotly.graph_objects as go
+
+# Step 1: Find the top 10 most sold car makes
+top_10_makes = df['make'].value_counts().nlargest(10).index
+
+# Step 2: Filter the DataFrame to include only the top 10 makes
+filtered_df = df[df['make'].isin(top_10_makes)]
+
+# Step 3: Group data by city and make, then count occurrences
+city_make_counts = filtered_df.groupby(['dealer_city', 'make'])['make'].count().reset_index(name='count')
+
+# Step 4: Create the histogram
+fig_histogram = px.histogram(city_make_counts,
+                             x='dealer_city',
+                             y='count',
+                             color='make',
+                             title="Sales Distribution of Top 10 Car Makes Across Cities",
+                             labels={'dealer_city': 'City', 'count': 'Number of Car Models Sold'},
+                             template='plotly_dark',
+                             color_discrete_sequence=px.colors.qualitative.Set3)
+
+fig_histogram.update_layout(barmode='stack')
+fig_histogram.show()
+
+# Step 5: Create the bar chart for total counts
+total_counts = filtered_df['make'].value_counts().reset_index()
+total_counts.columns = ['make', 'total_count']
+
+fig_bar = px.bar(total_counts,
+                  x='make',
+                  y='total_count',
+                  title="Total Sales of Top 10 Car Makes",
+                  labels={'make': 'Car Make', 'total_count': 'Total Sales'},
+                  template='plotly_dark',
+                  color_discrete_sequence=px.colors.qualitative.Set3)
+
+fig_bar.show()
+
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Set style
+sns.set(style="whitegrid")
+
+# Create a subset DataFrame for Edmonton listings
+df_edmonton = df[df['dealer_city'] == 'Edmonton']  # Filter for Edmonton
+
+# Plot 1: Vehicle count by postal code
+plt.figure(figsize=(12, 6))
+df_edmonton["dealer_postal_code"].value_counts().head(15).plot(kind="bar", color="royalblue")
+plt.title("Top 15 Postal Codes with Most Listings in Edmonton")
+plt.xlabel("Postal Code")
+plt.ylabel("Number of Listings")
+plt.xticks(rotation=45)
+plt.show()
+
+# Plot 2: Price distribution
+plt.figure(figsize=(10, 5))
+sns.histplot(df_edmonton["price"], bins=50, kde=True, color="green")
+plt.title("Price Distribution of Vehicles in Edmonton")
+plt.xlabel("Price ($)")
+plt.ylabel("Count")
+plt.show()
+
+# Plot 3: Days on Market distribution
+plt.figure(figsize=(10, 5))
+sns.histplot(df_edmonton["days_on_market"], bins=50, kde=True, color="purple")
+plt.title("Days on Market Distribution")
+plt.xlabel("Days on Market")
+plt.ylabel("Count")
+plt.show()
+
+# 1. Box Plot: Price distribution by Make
+plt.figure(figsize=(14, 6))
+top_makes = df_edmonton["make"].value_counts().head(10).index  # Select top 10 makes
+sns.boxplot(data=df_edmonton[df_edmonton["make"].isin(top_makes)], x="make", y="price", palette="coolwarm")
+plt.title("Price Distribution by Vehicle Make")
+plt.xlabel("Make")
+plt.ylabel("Price ($)")
+plt.xticks(rotation=45)
+plt.show()
+
+plt.figure(figsize=(10, 6))
+sns.scatterplot(
+    data=df_edmonton,
+    x="days_on_market",
+    y="price",
+    hue="stock_type",  # Differentiate by stock type
+    palette="Set1",    # Use distinct colors
+    alpha=0.7
+)
+plt.title("Days on Market vs. Vehicle Price (by Stock Type)")
+plt.xlabel("Days on Market")
+plt.ylabel("Price ($)")
+plt.legend(title="Stock Type")
+plt.show()
+
+
+# 3. Count Plot: Number of Listings by Model Year
+plt.figure(figsize=(12, 6))
+sns.countplot(data=df_edmonton, x="model_year", palette="viridis", order=sorted(df_edmonton["model_year"].unique()))
+plt.title("Vehicle Listings by Model Year")
+plt.xlabel("Model Year")
+plt.ylabel("Count of Listings")
+plt.xticks(rotation=45)
+plt.show()
+
+
+Heatmap: Correlation Between Numeric Features
+( Shows relationships between key numeric features like price, mileage, and days on market.)
+
+plt.figure(figsize=(10, 6))
+sns.heatmap(df_edmonton[["price", "mileage", "days_on_market", "model_year"]].corr(), annot=True, cmap="coolwarm", linewidths=0.5)
+plt.title("Correlation Heatmap of Key Features")
+plt.show()
+
+
+Bar Chart: Average Price per Stock Type (New vs. Used)
+show pricing differences between new and used cars.
+
+plt.figure(figsize=(8, 5))
+sns.barplot(data=df_edmonton, x="stock_type", y="price", estimator=sum, palette="pastel")
+plt.title("Total Vehicle Sales by Stock Type")
+plt.xlabel("Stock Type")
+plt.ylabel("Total Sales ($)")
+plt.show()
+
+
+KDE Plot: Mileage Distribution for Best-Selling Postal Codes:analyze the average mileage of cars sold in top-performing regions.
+
+plt.figure(figsize=(10, 6))
+top_postal_codes = df_edmonton["dealer_postal_code"].value_counts().head(5).index
+for code in top_postal_codes:
+    sns.kdeplot(df_edmonton[df_edmonton["dealer_postal_code"] == code]["mileage"], label=code, fill=True)
+plt.title("Mileage Distribution for Top 5 Postal Codes")
+plt.xlabel("Mileage")
+plt.ylabel("Density")
+plt.legend(title="Postal Code")
+plt.show()
+
+
+Pair Plot: Price vs. Mileage, Model Year, Days on Market
+
+sns.pairplot(df_edmonton[["price", "mileage", "model_year", "days_on_market"]], diag_kind="kde")
+plt.show()
+
+
+# Check if columns exist before applying get_dummies
+columns_to_encode = ['make', 'model', 'dealer_postal_code']
+columns_to_encode = [col for col in columns_to_encode if col in df.columns]
+
+# Only apply get_dummies if there are columns to encode
+if columns_to_encode:
+    df = pd.get_dummies(df, columns=columns_to_encode, drop_first=True)
+
+# Label Encoding for 'condition' (if applicable)
+if 'condition' in df.columns:
+    le = LabelEncoder()
+    df['condition'] = le.fit_transform(df['condition'])
+
+# Check the transformed dataset
+print(df.head())
+
+# Save the encoded dataset
+df.to_csv('encoded_dataset.csv', index=False)
+
+plt.figure(figsize=(8, 5))
+sns.histplot(df['price'], bins=50, kde=True, color='blue')
+plt.title("Price Distribution of Vehicles")
+plt.xlabel("Price ($)")
+plt.ylabel("Frequency")
+plt.xlim(0, 200000)  # Focus on relevant price range
+plt.show()
+
+
+plt.figure(figsize=(8, 5))
+sns.histplot(df['mileage'], bins=50, kde=True, color='green')
+plt.title("Mileage Distribution of Vehicles")
+plt.xlabel("Mileage (km)")
+plt.ylabel("Frequency")
+plt.xlim(0, 300000)  # Exclude extreme outliers
+plt.show()
+
+
+plt.figure(figsize=(8, 5))
+sns.histplot(df['days_on_market'], bins=50, kde=True, color='purple')
+plt.title("Days on Market Distribution")
+plt.xlabel("Days on Market")
+plt.ylabel("Frequency")
+plt.xlim(0, 200)  # Exclude extreme cases
+plt.show()
+
+
+plt.figure(figsize=(8, 6))
+corr = df[['price', 'mileage', 'model_year', 'days_on_market']].corr()
+sns.heatmap(corr, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
+plt.title("Correlation Matrix of Key Variables")
+plt.show()
+
+
+# Identify correct postal code column
+postal_code_col = None
+for col in df.columns:
+    if "postal" in col or "zip" in col:
+        postal_code_col = col
+        break
+
+if postal_code_col:
+    # Count vehicle sales by postal code
+    top_regions = df[postal_code_col].value_counts().head(10)
+
+    plt.figure(figsize=(10, 5))
+    sns.barplot(x=top_regions.index, y=top_regions.values, palette="Blues_r")
+    plt.xticks(rotation=45)
+    plt.title("Top-Selling Regions by Postal Code")
+    plt.xlabel("Dealer Postal Code")
+    plt.ylabel("Number of Sales")
+    plt.show()
+else:
+    print("Error: Postal code column not found in dataset.")
+
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load dataset
+df = pd.read_csv("CBB_Listings.csv")
+
+# Count missing values before cleaning
+missing_before = df.isnull().sum()
+
+# Simulate missing value handling (fill missing values)
+df_cleaned = df.fillna(df.median(numeric_only=True))
+missing_after = df_cleaned.isnull().sum()
+
+# Create a DataFrame for comparison
+missing_df = pd.DataFrame({"Before Cleaning": missing_before, "After Cleaning": missing_after})
+missing_df = missing_df[missing_df.sum(axis=1) > 0]  # Only show features that had missing values
+
+# Plot comparison
+missing_df.plot(kind='bar', figsize=(10, 5), color=['red', 'green'])
+plt.title("Missing Values: Before vs. After Cleaning")
+plt.xlabel("Features")
+plt.ylabel("Number of Missing Values")
+plt.xticks(rotation=45)
+plt.legend(["Before Cleaning", "After Cleaning"])
+plt.show()
+
+
+# Count unique categorical values before encoding
+cat_cols = ["make", "model", "dealer_city"]
+unique_before = sum(df[col].nunique() for col in cat_cols)
+
+# Perform encoding
+df_encoded = pd.get_dummies(df, columns=cat_cols, drop_first=True)
+unique_after = df_encoded.shape[1] - df.shape[1]  # Number of new columns added
+
+# Pie Chart Data
+labels = ["Before Encoding", "After Encoding"]
+values = [unique_before, unique_after]
+colors = ['purple', 'orange']
+
+# Plot Pie Chart
+plt.figure(figsize=(7, 7))
+plt.pie(values, labels=labels, autopct='%1.1f%%', colors=colors, startangle=90, wedgeprops={"edgecolor": "black"})
+plt.title("Categorical Encoding: Before vs. After")
+plt.show()
+
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
+
+# Select numerical features
+num_cols = ["price", "mileage", "days_on_market"]
+
+# Apply Min-Max Scaling
+scaler = MinMaxScaler()
+df_scaled = df.copy()
+df_scaled[num_cols] = scaler.fit_transform(df[num_cols])
+
+# Plot Before vs. After Scaling
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+# Before Scaling
+sns.histplot(df[num_cols], kde=True, ax=axes[0])
+axes[0].set_title("Before Scaling")
+axes[0].set_xlabel("Value Range")
+axes[0].legend(num_cols)
+
+# After Scaling
+sns.histplot(df_scaled[num_cols], kde=True, ax=axes[1], palette="coolwarm")
+axes[1].set_title("After Scaling")
+axes[1].set_xlabel("Normalized Range")
+axes[1].legend(num_cols)
+
+plt.suptitle("Numerical Features: Before vs. After Scaling")
+plt.show()
+
+
+# Count total rows before and after data cleaning
+rows_before = df.shape[0]
+
+# Remove rows with missing values & outliers
+df_cleaned = df.dropna()  # Removing missing values
+df_cleaned = df_cleaned[(df_cleaned["price"] < 100000) & (df_cleaned["mileage"] < 300000)]  # Removing outliers
+rows_after = df_cleaned.shape[0]
+
+# Pie Chart Data
+labels = ["Rows Removed", "Rows Kept"]
+values = [rows_before - rows_after, rows_after]
+colors = ["red", "green"]
+
+# Plot Pie Chart
+plt.figure(figsize=(7, 7))
+plt.pie(values, labels=labels, autopct="%1.1f%%", colors=colors, startangle=90, wedgeprops={"edgecolor": "black"})
+plt.title("Dataset Size: Before vs. After Cleaning")
+plt.show()
