@@ -1,6 +1,7 @@
 from pathlib import Path
 import numpy as np
 import pandas as pd
+import yaml
 from src.utils.helpers import get_project_root, load_config, get_logger, resolve_under_root
 from src.utils.model_utils import KProtoWrapper
 
@@ -18,6 +19,15 @@ def load_data(path: str) -> np.ndarray:
         return np.load(p)
     else:
         raise ValueError(f"Unsupported data format: {p.suffix}")
+
+def with_overrides(path, overrides=None):
+    with open(path, "r") as f:
+        cfg = yaml.safe_load(f)
+    if overrides:
+        # merge override keys
+        for section, values in overrides.items():
+            cfg.setdefault(section, {}).update(values)
+    return cfg
 
 def main():
     root = get_project_root()
