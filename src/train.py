@@ -1,7 +1,7 @@
 from pathlib import Path
 import pandas as pd
 from src.utils.helpers import get_project_root, load_config, get_logger, resolve_under_root
-from utils.model_utils import KProtoWrapper
+from src.utils.model_utils import KProtoWrapper
 
 cfg = with_overrides(args.config, {"train": {"n_clusters": args.k}} if args.k else None)
 in_parquet = resolve_under_root(cfg["train"]["in_parquet"])
