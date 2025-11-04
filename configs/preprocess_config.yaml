@@ -1,47 +1,8 @@
-# Preprocessing Configuration
-# Data source
-data:
-  filename: CBB_Listings.csv
-  target_column: - Region_vehicle_sold
-  id_column: VIN number
-# Missing value handling
-missing_values:
-  strategy: median # Options: drop, mean, median, mode, forward_fill, backward_fill
-# Feature scaling
-scaling:
-  method: standard # Options: standard, minmax, robust, none
-  with_mean: true
-  with_std: true
-# Feature columns
-features:
-  categorical:
-    - series
-    - exterior_color
-    - exterior_color_category
-    - interior_color_category
-    - interior_color
-    - make
-    - Region
-    - Most_sold_brand
-    - Most_sold_month
-  numerical:
-  - price
-  - days_on_market
-  - Average_mileage
-  - Average_price
-  - FSA_Code
-  - FSA_Latitude
-  - FSA_Longitude
-  - Region_vehicle_sold
-  - Region_dealerships
-# Train-test split
-split:
-  test_size: 0.2
-  random_state: 42
-  stratify: true
-# Pipeline options
-pipeline:
-  use_sklearn_pipeline: true # Recommended: true
-  save_artifacts: true # Save pipeline and encoders
-  
-  
+input_file: 
+  - CBB_Listings_1.csv
+  - CBB_Listings_2.csv
+  - CBB_Listings_3.csv
+  - CBB_Listings_4.csv
+iqr_trim_columns: [price, mileage, days_on_market]
+coords_file: POSTAL_CODE.csv
+out_parquet: data/processed/final_features.parquet
