@@ -1,9 +1,24 @@
-from pathlib import Path
 import numpy as np
 import pandas as pd
 import yaml
 from src.utils.helpers import get_project_root, load_config, get_logger, resolve_under_root
 from src.utils.model_utils import KProtoWrapper
+from pathlib import Path
+
+try:
+    # preferred: use helpers if available
+    from src.utils.helpers import get_project_root, load_config, get_logger, resolve_under_root
+except ImportError:
+    # fall back: import what exists, and define resolve_under_root locally
+    from src.utils.helpers import get_project_root, load_config, get_logger
+
+    def resolve_under_root(path):
+        p = Path(path)
+        if p.is_absolute():
+            return p
+        root = Path(__file__).resolve().parents[1]  # repo root = parent of src/
+        return (root / p).resolve()
+
 
 cfg = with_overrides(args.config, {"train": {"n_clusters": args.k}} if args.k else None)
 in_parquet = resolve_under_root(cfg["train"]["in_parquet"])
