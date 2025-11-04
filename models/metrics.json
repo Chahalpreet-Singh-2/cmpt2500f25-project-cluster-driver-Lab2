@@ -1,0 +1,13 @@
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score
+import numpy as np
+
+num = work.select_dtypes(include="number").copy()
+metrics = {}
+
+if not num.empty:
+    X = StandardScaler().fit_transform(num)
+    try:
+        metrics["silhouette_numeric_proxy"] = float(silhouette_score(X, labels))
+    except Exception:
+        metrics["silhouette_numeric_proxy"] = None

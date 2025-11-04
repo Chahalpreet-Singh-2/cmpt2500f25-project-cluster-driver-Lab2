@@ -1,0 +1,23 @@
+manifest = {
+    "created_at": ts,
+    "algo": algo,
+    "n_clusters": int(cfg["train"]["n_clusters"]),
+    "init": cfg["train"]["init"],
+    "random_state": int(cfg["train"]["random_state"]),
+    "rows": int(work.shape[0]),
+    "features_used": feats,
+    "categorical_columns": cat_cols
+}
+
+# Save metrics + manifest
+with open(run_dir / "metrics.json", "w") as f: json.dump(metrics, f, indent=2)
+with open(run_dir / "manifest.json", "w") as f: json.dump(manifest, f, indent=2)
+
+# Update models/latest/ (copy over)
+latest = models_dir / "latest"
+if latest.exists():
+    shutil.rmtree(latest)
+shutil.copytree(run_dir, latest)
+
+print(f"Saved model artifacts in: {run_dir}")
+print(f"Updated: {latest}")

@@ -1,0 +1,35 @@
+import json, shutil, time
+from pathlib import Path
+
+root = get_root()
+models_dir = root / "models"
+ts = time.strftime("%Y-%m-%d_%H-%M-%S")
+run_dir = models_dir / ts
+run_dir.mkdir(parents=True, exist_ok=True)
+
+
+# For K-Prototypes path:
+bundle = {
+    "algo": algo,                               # "kprototypes" or "kmeans"
+    "model": None,
+    "scaler": None,
+    "cat_cols": cat_cols,
+    "feature_columns": feats
+}
+try:
+    if algo == "kprototypes":
+        from kmodes.kprototypes import KPrototypes
+        # Rebuild the wrapper so we capture the fitted model AND scaler
+        # If you already used a wrapper class, just re-use it here.
+        # Example assumes you still have the trained objects accessible:
+        bundle["model"] = kproto  # your fitted KPrototypes instance
+        bundle["scaler"] = None   # if you scaled externally, store that scaler here
+    else:
+        # KMeans fallback example (numeric only)
+        bundle["model"] = None  # if you want, store the fitted KMeans instance
+        bundle["scaler"] = None
+except NameError:
+    pass
+
+import joblib
+joblib.dump(bundle, run_dir / "model.joblib")
