@@ -1,0 +1,536 @@
+# **1**
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.decomposition import PCA
+
+# Specify the path to your CSV file
+csv_file_path = 'CBB_Listings.csv'
+
+# Read the dataset into a Pandas DataFrame
+df = pd.read_csv(csv_file_path)
+
+df.head()
+
+df.info()
+
+#Droping columns
+df = df.drop(['dealer_email', 'dealer_phone', 'has_leather', 'has_navigation'], axis=1)
+
+df.isnull().sum()
+
+# Convert 'listing_first_date' to datetime
+df['listing_first_date'] = pd.to_datetime(df['listing_first_date'])
+
+# Calculate 'listing_dropoff_date' using days_on_market columns
+df['listing_dropoff_date'] = df['listing_first_date'] + pd.to_timedelta(df['days_on_market'], unit='D')
+
+#updating ''listing_dropoff_date' to datetime
+df['listing_dropoff_date'] = pd.to_datetime(df['listing_dropoff_date'])
+
+# Display the updated DataFrame
+df[['listing_first_date', 'days_on_market', 'listing_dropoff_date']].head()
+
+#Calculating the number of 0s in 'price' column
+num_zeros = (df['price'] == 0).sum()
+print(f"Number of 0s in 'price' column: {num_zeros}")\
+
+#calculating the median of the 'price' column excluding 0s
+median_price = df[df['price'] != 0]['price'].median()
+
+#filling the 0s with the median
+df.loc[df['price'] == 0, 'price'] = median_price
+
+#Displaying price
+df['price']
+
+
+
+df.isnull().sum()
+
+# Replace the nulls in series, exterior_color, exterior_color_category, interior_color, interior_color_category with mode
+df['series'].fillna(df['series'].mode()[0])
+df['exterior_color'].fillna(df['exterior_color'].mode()[0])
+df['exterior_color_category'].fillna(df['exterior_color_category'].mode()[0])
+df['interior_color'].fillna(df['interior_color'].mode()[0])
+df['interior_color_category'] = df['interior_color_category'].fillna(df['interior_color_category'].mode()[0])
+
+# Replacing numerical values in Certified column with categorical ones
+df['certified'] = df['certified'].replace({0: 'No', 1: 'Yes'})
+df['certified']
+
+#Handling missing values in 'wheelbase_from_vin'
+
+#counting values in wheelbase
+
+# values less than 500
+less_than_500 = (df['wheelbase_from_vin'] < 500).sum()
+print(f"Number of values less than 500 in 'wheelbase_from_vin': {less_than_500}")
+
+#values less than 1000
+less_than_1000 = (df['wheelbase_from_vin'] < 1000).sum()
+print(f"Number of values less than 1000 in 'wheelbase_from_vin': {less_than_1000}")
+
+# values less than 2000
+less_than_2000 = (df['wheelbase_from_vin'] < 2000).sum()
+print(f"Number of values less than 2000 in 'wheelbase_from_vin': {less_than_2000}")
+
+#values greater than 2000
+greater_than_2000 = (df['wheelbase_from_vin'] > 2000).sum()
+print(f"Number of values greater than 2000 in 'wheelbase_from_vin': {greater_than_2000}")
+
+df['wheelbase_from_vin'].describe()
+
+
+#Replace 0s with NaN
+df['wheelbase_from_vin'] = df['wheelbase_from_vin'].replace(0, np.nan)
+
+#imputaion with median:
+df['wheelbase_from_vin'] = df['wheelbase_from_vin'].fillna(df['wheelbase_from_vin'].median())
+
+df['wheelbase_from_vin']
+
+
+df.info()
+
+unique_postal_code = df['dealer_postal_code'].unique()
+print(f"Number of unique values: {len(unique_postal_code)}")
+
+import geopy
+import pandas as pd
+from geopy.extra.rate_limiter import RateLimiter # to avoid overloading the server
+from functools import lru_cache #used to cache the results
+
+
+postal_codes = pd.read_csv('POSTAL_CODE.csv')  # LOad POSTAL code FILE
+postal_codes.head(185)
+
+
+#outlies
+! pip install zscore
+import pandas as pd
+import numpy as np
+import scipy.stats as stats
+import zscore
+
+#create sample dataset
+data = {
+    'Feature1': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    'Feature2': [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+}
+
+df = pd.DataFrame(data)
+print("Original DataFrame:")
+print(df)
+
+#calculate z-score for each column
+df['z_score_Feature1'] = stats.zscore(df['Feature1'])
+df['z_score_Feature2'] = stats.zscore(df['Feature2'])
+
+print("\nDataFrame with Z-scores:")
+print(df)
+
+
+
+
+
+#LOAD POSTAL CODE.csv file
+postal_codes = pd.read_csv('POSTAL_CODE.csv')
+postal_codes.head(185)
+
+#LOAD POSTAL CODE.csv file
+postal_codes = pd.read_csv('POSTAL_CODE.csv')
+postal_codes = postal_codes.rename(columns={'dealer_postal_code ': 'dealer_postal_code'})
+# 1. Load your main dataframe
+df = pd.read_csv('CBB_Listings.csv')
+
+# 1. Create a dictionary of postal codes and coordinates
+postal_code_dict = {
+    'T5S 1Y8': (53.549233, -113.666536),
+    'T6V 1H4': (53.604536, -113.578942),
+    'T6H 1B7': (53.492482, -113.493143),
+    'T6X 1A1': (53.421713, -113.48973),
+    'T8N 7X1': (53.674928, -113.638065),
+    'T5L 4H5': (53.591185, -113.564813),
+    'T6E 0G7': (53.499461, -113.483908),
+    'T8H 2N1': (53.546014, -113.327893),
+    'T9E 6T9': (53.281782, -113.546323),
+    'T5V 0C3': (53.576926, -113.589133),
+    'T5L 5H7': (53.599913, -113.570655),
+    'T5J 2E5': (53.544736, -113.491391),
+    'T5J 2R7': (53.521746, -113.466265),
+    'T5B 2N1': (53.567, -113.464409),
+    'T6E 5P2': (53.466121, -113.472256),
+    'T8H 0X5': (53.551967, -113.311705),
+    'T8H 0R5': (53.556586, -113.310874),
+    'T6H 1H1': (53.496786, -113.495747),
+    'T6E 6A4': (53.46741, -113.474281),
+    'T6H 4J7': (53.48981, -113.493039),
+    'T5A 1C3': (53.592721, -113.428304),
+    'T5Y 3B2': (53.599576, -113.417911),
+    'T9E 0Z7': (53.278779, -113.545601),
+    'T6E 5T6': (53.466958, -113.471536),
+    'T5S 0A2': (53.559947, -113.62326),
+    'T5E 4C7': (53.59468, -113.491331),
+    'T5S 1E4': (53.542818, -113.625713),
+    'T5B 1K3': (53.579197, -113.443474),
+    'T6E 4C6': (53.514708, -113.498031),
+    'T6E 5W8': (53.465953, -113.477218),
+    'T9E 0W8': (53.333847, -113.542417),
+    'T6E 6V6': (53.497962, -113.466073),
+    'T5B 1G2': (53.582496, -113.481889),
+    'T5S 1X2': (53.552158, -113.683096),
+    'T7X 3A6': (53.545537, -113.903261),
+    'T5L 4P6': (53.592173, -113.568713),
+    'T5S 2C3': (53.542727, -113.694983),
+    'T5R 1Y5': (53.520408, -113.589933),
+    'T5B 1K2': (53.577026, -113.443418),
+    'T6E 5P8': (53.478324, -113.481022),
+    'T9E 7A7': (53.274779, -113.547858),
+    'T8H 1N1': (53.558652, -113.325833),
+    'T6H 2K4': (53.495635, -113.497162),
+    'T5S 1S1': (53.542743, -113.631555),
+    'T8L 3K8': (53.70586, -113.196872),
+    'T6B 0G3': (53.517728, -113.441163),
+    'T5S 1M9': (53.543904, -113.630355),
+    'T5E 0E2': (53.585057, -113.525642),
+    'T7X 6A5': (53.544574, -113.782322),
+    'T6A 3A4': (53.542306, -113.444101),
+    'T6E 5Z5': (53.486069, -113.477623),
+    'T5H 0Y5': (53.552205, -113.51855),
+    'T5H 3K1': (53.551929, -113.517376),
+    'T6C 4H8': (53.511227, -113.441257),
+    'T5B 0S4': (53.570172, -113.469567),
+    'T5G 2Z1': (53.582161, -113.492898),
+    'T5L 2L5': (53.598442, -113.579851),
+    'T6V 1J1': (53.601613, -113.588422),
+    'T9E 7L1': (53.289492, -113.54546),
+    'T5G 0A8': (53.559383, -113.490767),
+    'T5C 3C2': (53.584064, -113.444293),
+    'T5L 2J8': (53.570641, -113.532039),
+    'T8H 2A2': (53.543867, -113.318065),
+    'T5S 1B1': (53.540351, -113.635669),
+    'T6E 6G7': (53.468482, -113.489951),
+    'T8N 2Y3': (53.619324, -113.6077),
+    'T6N 1H8': (53.455708, -113.474548),
+    'T9E 7A9': (53.277309, -113.548286),
+    'T5S 1A4': (53.541938, -113.630124),
+    'T5S 1C6': (53.539442, -113.638367),
+    'T5B 0S9': (53.570228, -113.473859),
+    'T6W 3G9': (53.428507, -113.590232),
+    'T6N 1C1': (53.46373, -113.468913),
+    'T5W 1A8': (53.570096, -113.411217),
+    'T7X 2Y3': (53.54566, -113.9026),
+    'T6E 5X9': (53.467055, -113.482628),
+    'T6K 4E7': (53.483413, -113.443877),
+    'T5B 4G9': (53.573829, -113.460508),
+    'T6X 0S8': (53.426818, -113.489199),
+    'T5G 0H8': (53.560534, -113.522931),
+    'T6B 2H8': (53.513129, -113.407747),
+    'T6E 6J6': (53.469156, -113.481194),
+    'T5G 0B1': (53.559035, -113.492552),
+    'T5B 1Y2': (53.571448, -113.451741),
+    'T6E 3J2': (53.494776, -113.478623),
+    'T8H 1B4': (53.554424, -113.319586),
+    'T6E 2B1': (53.517704, -113.507252),
+    'T6E 0X6': (53.507795, -113.507911),
+    'T6E 0K9': (53.50231, -113.488079),
+    'T6B 2J8': (53.508366, -113.419273),
+    'T5G 1R2': (53.571235, -113.488478),
+    'T6E 4P2': (53.498291, -113.459814),
+    'T5B 1K1': (53.577413, -113.442568),
+    'T5S 1R1': (53.542936, -113.629053),
+    'T5V 1K8': (53.577274, -113.586491),
+    'T8H 0C7': (53.546738, -113.330088),
+    'T6J 6V4': (53.46246, -113.495135),
+    'T5S 1P9': (53.542817, -113.63037),
+    'T5B 0C4': (53.560843, -113.482261),
+     'T5W 1G3': (53.570648, -113.440594),
+    'T5B 1N2': (53.580492, -113.444054),
+    'T6H 2K8': (53.498717, -113.496086),
+    'T5S 2A1': (53.549727, -113.686217),
+    'T6E 5A6': (53.489161, -113.474521),
+    'T5S 2X1': (53.561611, -113.616362),
+    'T5E 6M7': (53.584443, -113.489058),
+    'T5S 0B9': (53.54432, -113.641427),
+    'T5A 2W9': (53.585779, -113.415452),
+    'T5G 3E5': (53.582625, -113.490243),
+    'T6B 0B7': (53.513004, -113.441454),
+    'T8L 3V5': (53.701823, -113.203532),
+    'T5S 1N9': (53.543524, -113.61727),
+    'T8A 4N5': (53.513148, -113.325929),
+    'T6H 4J8': (53.491305, -113.496239),
+    'T8H 0E1': (53.568231, -113.311384),
+    'T5C 0A3': (53.58571, -113.443361),
+    'T5L 2J7': (53.588151, -113.576664),
+    'T8N 3Z7': (53.625671, -113.637513),
+    'T5A 1C2': (53.593061, -113.430422),
+    'T6W 2P6': (53.422385, -113.497227),
+    'T5W 1E5': (53.570063, -113.431555),
+    'T6A 0A7': (53.537893, -113.439521),
+    'T5E 4C9': (53.59329, -113.49307),
+    'T5E 1Y8': (53.598817, -113.494524),
+    'T9E 8A5': (53.294746, -113.545184),
+    'T6H 5W5': (53.48916, -113.491158),
+    'T5B 0S6': (53.570187, -113.470844),
+    'T5S 1N4': (53.541463, -113.632697),
+    'T5T 3J7': (53.522335, -113.622923),
+    'T5H 2S8': (53.556703, -113.494246),
+    'T5S 0A1': (53.559087, -113.624689),
+    'T8L 0P6': (53.674443, -113.242826),
+    'T6E 6S9': (53.467826, -113.47846),
+    'T6E 6L1': (53.4683, -113.484201),
+    'T6B 2H5': (53.509612, -113.415763),
+    'T5S 1P5': (53.542662, -113.628141),
+    'T5M 4G4': (53.563623, -113.579631),
+    'T5S 2Y4': (53.539532, -113.651114),
+    'T5S 1B4': (53.540342, -113.629705),
+    'T9E 7C7': (53.282279, -113.546108),
+    'T5S 1A7': (53.542411, -113.638397),
+    'T6V 1H5': (53.607832, -113.587096),
+    'T6E 5R2': (53.478723, -113.477049),
+    'T7X 5A3': (53.563063, -113.766949),
+    'T6B 2T4': (53.533363, -113.416531),
+    'T6X 1E9': (53.422085, -113.474242),
+    'T5H 2G1': (53.559576, -113.486317),
+    'T6E 4W8': (53.487292, -113.477167),
+    'T6B 2Z9': (53.508912, -113.434842),
+    'T8H 0M2': (53.56693, -113.313956),
+    'T5S 2X6': (53.540246, -113.64364),
+    'T8N 3X9': (53.666385, -113.628717),
+    'T5S 0J5': (53.559002, -113.61948),
+    'T6E 6B3': (53.469841, -113.480067),
+    'T5E 4C4': (53.59035, -113.49115),
+    'T8N 5A5': (53.636964, -113.570135),
+    'T5P 4M9': (53.539746, -113.612409),
+    'T5B 4H8': (53.582498, -113.449686),
+    'T5M 2R8': (53.559574, -113.596458),
+    'T5G 0N8': (53.570173, -113.487994),
+    'T6B 3L9': (53.494061, -113.44116),
+    'T5S 2C8': (53.545649, -113.622794),
+    'T6E 4N7': (53.502571, -113.450468),
+    'T9G 1B2': (53.366867, -113.734055),
+    'T5L 3C1': (53.582383, -113.550417),
+    'T6E 5X8': (53.466829, -113.475741),
+    'T5S 0A8': (53.560491, -113.618451),
+    'T6H 2H3': (53.495249, -113.491547),
+    'T6H 5X8': (53.490051, -113.496852),
+    'T5L 4P3': (53.597906, -113.575949),
+    'T5H 0Y5': (53.552205, -113.51855),
+    'T5L 2Y6': (53.576502, -113.574076),
+    'T6H 2J4': (53.489435, -113.494305),
+    'T6E 6G4': (53.496501, -113.463115),
+    'T5H 2F8': (15.1617382, 105.2236161),
+    'T5L 3C5': (53.582267, -113.572812),
+    'T6C 4A5': (53.509855, -113.438178),
+    'T9E 0R8': (53.291928, -113.530521),
+    'T5S 0A6': (53.558529, -113.638664),
+    'T6W 1A1': (53.420286, -113.494915),
+    'T5L 2G7': (53.571387, -113.566433),
+    'T5G 0N9': (53.570162, -113.489783),
+    'T5S 1B4': (53.540342, -113.629705),
+    'T5S 0A1': (53.559087, -113.624689),
+    'T5S 1A7': (53.542411, -113.638397)
+    # (all 185 postal codes and coordinates)
+}
+
+# 3. Convert dealer_postal_code to string in df
+df['dealer_postal_code'] = df['dealer_postal_code'].astype(str)
+
+# 4. Update df with coordinates using the dictionary
+df['latitude'] = df['dealer_postal_code'].map(lambda x: postal_code_dict.get(x, (None, None))[0])
+df['longitude'] = df['dealer_postal_code'].map(lambda x: postal_code_dict.get(x, (None, None))[1])
+
+
+df.head()
+
+import random
+
+# Select 8 random rows from the DataFrame
+random_rows = df.sample(n=8)
+
+# Display the dealer_postal_code, latitude, and longitude for these rows
+print(random_rows[['dealer_postal_code', 'latitude', 'longitude']])
+
+!pip install dash
+!pip install dash-leaflet
+!pip install geocoder
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+from dash import html, dcc
+import dash_leaflet as dl
+from dash.dependencies import Input, Output, State
+import geocoder
+import plotly.express as px
+
+# Filter for sold vehicles
+sold_vehicles = df[df['listing_type'] == 'Sold'].copy() # Creating a copy of the slice
+
+# --- Calculate total_vehicles_sold and most_sold_brand ---
+dealership_sales = sold_vehicles.groupby('dealer_name')['listing_type'].count().reset_index()
+dealership_sales = dealership_sales.rename(columns={'listing_type': 'total_vehicles_sold'})
+
+# Group by brand and dealership, and count sold vehicles
+brand_dealership_sales = sold_vehicles.groupby(['make', 'dealer_name'])['listing_type'].count().reset_index()
+brand_dealership_sales = brand_dealership_sales.rename(columns={'listing_type': 'brand_vehicles_sold'})
+
+# Find the most sold brand for each dealership
+most_sold_brands_by_dealership = brand_dealership_sales.loc[brand_dealership_sales.groupby('dealer_name')['brand_vehicles_sold'].idxmax()]
+
+# Merge with total_vehicles_sold DataFrame
+combined_sales = pd.merge(dealership_sales, most_sold_brands_by_dealership[['dealer_name', 'make', 'brand_vehicles_sold']], on='dealer_name', how='left')
+
+# Rename the 'make' column to 'most_sold_brand' for clarity
+combined_sales = combined_sales.rename(columns={'make': 'most_sold_brand'})
+
+# --- Merge total_vehicles_sold and most_sold_brand into df ---
+# Drop any existing columns to avoid duplicates
+df = df.drop(columns=['total_vehicles_sold', 'total_vehicles_sold_x', 'total_vehicles_sold_y', 'most_sold_brand'], errors='ignore')
+
+# Merge the combined_sales data into df
+df = pd.merge(df, combined_sales[['dealer_name', 'total_vehicles_sold', 'most_sold_brand']], on='dealer_name', how='left')
+
+# --- Calculate and merge total_revenue ---
+sold_vehicles.loc[:, 'revenue'] = sold_vehicles['price']  # Using .loc for assignment
+dealership_revenue = sold_vehicles.groupby('dealer_name')['revenue'].sum().reset_index()
+dealership_revenue = dealership_revenue.rename(columns={'revenue': 'total_revenue'})
+
+# Drop any existing total_revenue column
+df = df.drop(columns=['total_revenue'], errors='ignore')
+df = pd.merge(df, dealership_revenue, on='dealer_name', how='left')
+
+# --- Calculate and merge avg_days_on_market ---
+average_days_on_market = df.groupby('dealer_name')['days_on_market'].mean().reset_index()
+average_days_on_market = average_days_on_market.rename(columns={'days_on_market': 'avg_days_on_market'})
+
+# Drop any existing avg_days_on_market columns
+df = df.drop(columns=['avg_days_on_market', 'avg_days_on_market_x', 'avg_days_on_market_y'], errors='ignore')
+df = pd.merge(df, average_days_on_market, on='dealer_name', how='left')
+
+# Now convert to integer and then to string
+df['avg_days_on_market'] = df['avg_days_on_market'].astype(int).astype(str)
+
+df['total_vehicles_sold'] = df['total_vehicles_sold'].fillna(0)
+
+df.head()
+
+# Create a Dash app
+app = dash.Dash(__name__)
+
+# Define the app layout with a search box and map
+app.layout = html.Div([
+    html.Div([
+        dcc.Input(id="search-input", type="text", placeholder="Search for a dealer or area..."),
+        html.Button("Search", id="search-button")
+    ], style={'display': 'flex', 'justifyContent': 'center', 'marginBottom': '10px'}),
+    dl.Map(
+        id="map",
+        style={'width': '100%', 'height': '500px'},
+        center=[53.5461, -113.4938],  # Centered around Edmonton
+        zoom=10,  # Adjusted zoom level
+        children=[
+            dl.TileLayer(),  # Default tile layer
+            dl.LayerGroup(id="marker-layer")
+        ]
+    )
+])
+
+
+# Define the callback to update the map based on search input
+@app.callback(
+    Output("marker-layer", "children"),
+    [Input("search-button", "n_clicks")],
+    [State("search-input", "value")]
+)
+def update_markers(n_clicks, search_term):
+    # Add a placeholder or your desired functionality here
+    # This is where you would process the search term
+    # and return the updated markers for the map
+
+    # This is just a placeholder, replace with your logic
+    markers = [] # Initialize an empty list to hold marker objects
+
+    if search_term: # Check if user has entered search term
+        # Apply your search logic to filter relevant dealer data from 'df'
+        filtered_df = df[df['dealer_name'].str.contains(search_term, case=False)]
+    else:
+        filtered_df = df # display all if search box is empty
+
+    #create a list of markers for the dash leaflet
+    for index, row in filtered_df.iterrows():
+        if row["latitude"] and row["longitude"]: # Check if both lat and long are not None
+            position = [row["latitude"], row["longitude"]]
+            # Create marker for dealer with Popup containing relevant information
+            marker = dl.Marker(
+                position=position,
+                children=dl.Tooltip(row['dealer_name']), # Tooltip is another option
+                id=f"marker_{row['dealer_name']}"
+            )
+
+            popup_content = html.Div([
+                html.H4(row['dealer_name']),
+                html.P(f"Dealer Postal Code: {row['dealer_postal_code']}"),
+                html.P(f"Total Vehicles Sold: {row['total_vehicles_sold']}"),
+                html.P(f"Most Sold Brand: {row['most_sold_brand']}"),
+                html.P(f"Total Revenue: ${row['total_revenue']:,.0f}"),
+                html.P(f"Average Days on Market: {row['avg_days_on_market']} days")
+            ])
+
+            # Add the popup content to the marker
+            marker.children.append(dl.Popup(popup_content))
+            markers.append(marker)
+
+    return markers  # Return the list of updated markers
+
+
+# Run the app
+if __name__ == '__main__':
+    app.run_server(debug=True)
+
+fig = px.scatter_mapbox(
+    df,
+    lat="latitude",
+    lon="longitude",
+    hover_name="dealer_name",  # Display dealer name on hover
+    size_max=15,
+    zoom=11,
+    mapbox_style="open-street-map",
+    color="total_vehicles_sold",  # Color based on total vehicles sold
+    color_continuous_scale="Viridis",  # Choose a color scale
+    range_color=[0, 3000],
+    # The custom_data elements should be column names from your DataFrame 'df'
+    custom_data=["dealer_postal_code", "total_vehicles_sold", "most_sold_brand", "total_revenue", "avg_days_on_market"]
+)
+
+min_marker_size = 12  # Minimum size of the marker
+max_marker_size = 30  # Maximum size of the marker
+scaling_factor = (max_marker_size - min_marker_size) / max(df['total_vehicles_sold'])
+
+fig.update_traces(
+    marker=dict(
+        size=min_marker_size + df['total_vehicles_sold'] * scaling_factor,
+        opacity=0.7  # Increased opacity for better visibility
+
+    ), # Added a comma here to separate the marker dictionary and hovertemplate argument
+    hovertemplate="<br>".join([ # This line should be aligned with marker argument
+        "<b>%{hovertext}</b>",  # Dealer name (hover_name)
+        '\n',
+        "Dealer Postal Code: %{customdata[0]}",  # dealer_postal_code
+        "Total Vehicles Sold: %{customdata[1]}",  # total_vehicles_sold
+        "Most Sold Brand: %{customdata[2]}",  # most_sold_brand
+        "Total Revenue: ${%{customdata[3]:,.0f}}",  # total_revenue
+        "Average Days on Market: %{customdata[4]} days"  # avg_days_on_market
+    ])
+)
+fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0}, showlegend=True,
+    mapbox=dict(
+        center=dict(lat=53.5461, lon=-113.4938),  # Center the map around Edmonton
+        zoom=9  # zoom level to fit all points comfortably
+    )
+  )
+fig.show(config={'scrollZoom': True})
