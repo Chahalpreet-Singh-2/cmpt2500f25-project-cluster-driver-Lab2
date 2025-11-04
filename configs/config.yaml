@@ -1,0 +1,22 @@
+# Project Configuration
+# Project metadata
+project:
+name: cmpt2500f25-project-tutorial
+version: 2.0.0
+description: Tutorial project for CMPT 2500: Best Selling Regions Prediction of Edmonton and its surroundings
+# Paths
+paths:
+data:
+raw: data/raw/
+processed: data/processed/
+external: data/external/
+models: models/
+outputs: outputs/
+logs: logs/
+# Random seed for reproducibility
+random_state: 42
+# Logging
+logging:
+level: INFO # DEBUG, INFO, WARNING, ERROR, CRITICAL
+format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+file: logs/app.log
