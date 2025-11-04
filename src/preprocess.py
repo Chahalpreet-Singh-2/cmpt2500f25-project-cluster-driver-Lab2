@@ -3,8 +3,9 @@ import pandas as pd
 from src.utils.helpers import get_project_root, load_config, get_logger
 from utils.data_utils import DataLoader, Cleaner
 from utils.feature_utils import FeatureEngineer
-
-cfg = with_overrides("configs/preprocess_config.yaml")  # or pass CLI overrides
+import yaml
+with open("configs/preprocess_config.yaml", "r") as f:
+    cfg = yaml.safe_load(f)
 raw_file = resolve_under_root(f"data/raw/{cfg['input_file']}")
 log = get_logger()
 
