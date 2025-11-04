@@ -1,0 +1,23 @@
+# Prediction Configuration
+# Model
+model:
+  path: models/models/kprototypes_model.joblib
+  type: kprototypes
+# Preprocessing
+preprocessing:
+  pipeline_path: data/processed/preprocessing_pipeline.pkl
+  label_encoder_path: data/processed/clustering.pkl
+# Input data
+input:
+  format: csv # Options: csv, json, numpy
+  path: data/raw/CBB_Listings.csv
+# Output
+output:
+  format: csv # Options: csv, json, numpy
+  path: predictions/predictions.csv
+  include_probabilities: true
+  include_confidence: true
+# Batch processing
+clusters:
+  enabled: true
+  clusters: 10# Process 10 samples at a time
