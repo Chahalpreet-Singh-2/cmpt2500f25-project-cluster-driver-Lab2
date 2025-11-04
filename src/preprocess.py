@@ -9,6 +9,9 @@ with open("configs/preprocess_config.yaml", "r") as f:
 raw_file = resolve_under_root(f"data/raw/{cfg['input_file']}")
 log = get_logger()
 
+def load_config(path: str):
+    with open(resolve_under_root(path), "r") as f:
+        return yaml.safe_load(f)
 def main():
     root = get_project_root()
     cfg = load_config(root / "configs" / "preprocess_config.yaml")
