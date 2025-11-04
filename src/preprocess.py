@@ -1,6 +1,6 @@
 from pathlib import Path
 import pandas as pd
-from src.utils.helpers import get_project_root, load_config, get_logger
+from src.utils.helpers import get_project_root, load_config, get_logger, resolve_under_root
 from src.utils.data_utils import DataLoader, Cleaner
 from src.utils.feature_utils import FeatureEngineer
 import yaml
