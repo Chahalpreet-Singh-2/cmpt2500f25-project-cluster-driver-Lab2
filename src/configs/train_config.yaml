@@ -1,0 +1,38 @@
+train:
+  in_parquet: data/processed/final_features.parquet
+  out_clustered_csv: data/processed/clustered.csv
+  save_model: true
+  model_path: models/kprototypes_model.joblib
+
+  feature_columns:
+    - FSA_Code
+    - make
+    - price
+    - Region
+    - Most_sold_brand
+    - Average_mileage
+    - Average_price
+    - FSA_Latitude
+    - FSA_Longitude
+    - Region_vehicle_sold
+    - Region_dealerships
+    - Most_sold_month
+
+  categorical_columns:
+    - FSA_Code
+    - make
+    - Region
+    - Most_sold_brand
+    - Most_sold_month
+
+  algorithm: kprototypes
+  n_clusters: 10
+  init: Huang
+  random_state: 42
+  scale_numerical: true
+
+  evaluation:
+    elbow_k_range: [2, 15]
+    silhouette_k_range: [2, 15]
+
+    
