@@ -9,7 +9,7 @@ import seaborn as sns
 from sklearn.decomposition import PCA
 
 # Specify the path to your CSV file
-csv_file_path = 'CBB_Listings.csv'
+csv_file_path = 'CBB_Listings_*.csv'
 
 # Read the dataset into a Pandas DataFrame
 df = pd.read_csv(csv_file_path)
