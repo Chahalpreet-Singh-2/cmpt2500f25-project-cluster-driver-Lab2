@@ -155,8 +155,12 @@ def main() -> None:
     labels = model.fit(work)
     work["Cluster"] = labels
 
-    # Save clustered data
-    out_csv = root / "data" / "processed" / "clustered.csv"
+    # Save clustered data (use YAML setting if present)
+    out_csv_cfg = cfg["train"].get(
+        "out_clustered_csv",
+        str(root / "data" / "processed" / "clustered.csv"),
+    )
+    out_csv = resolve_under_root(out_csv_cfg)
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     work.to_csv(out_csv, index=False)
     log.info(f"Saved clustered data -> {out_csv}")
@@ -165,15 +169,19 @@ def main() -> None:
     save_model_flag = args.save_model or cfg["train"].get("save_model", False)
 
     if save_model_flag:
-        model_dir = root / "models"
-        model_dir.mkdir(parents=True, exist_ok=True)
-        model_path = model_dir / "kprototypes_model.joblib"
+        model_path_cfg = cfg["train"].get(
+            "model_path",
+            str(root / "models" / "kprototypes_model.joblib"),
+        )
+        model_path = resolve_under_root(model_path_cfg)
+        model_path.parent.mkdir(parents=True, exist_ok=True)
         model.save(model_path)
         log.info(f"Saved model -> {model_path}")
     else:
-        log.info("Model not saved (use --save-model flag or set train.save_model: true in config).")
+        log.info(
+            "Model not saved (use --save-model flag or set train.save_model: true in config)."
+        )
 
 
 if __name__ == "__main__":
     main()
-
