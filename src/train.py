@@ -100,8 +100,10 @@ def main() -> None:
     root = get_project_root()
 
     # Resolve config path under project root
-    config_path = resolve_under_root(args.config)
-
+    config_path = Path(args.config)
+    if not config_path.is_absolute():
+        config_path = root / config_path
+    config_path = config_path.resolve()
     # If user passed -k/--n-clusters, override n_clusters in the config
     overrides = {"train": {"n_clusters": args.k}} if args.k else None
     cfg = with_overrides(config_path, overrides)
