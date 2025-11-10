@@ -1,3 +1,9 @@
+import mlflow
+import mlflow.sklearn
+from sklearn.metrics import (
+ accuracy_score, precision_score, recall_score,
+ f1_score, roc_auc_score, confusion_matrix
+)
 import argparse
 from pathlib import Path
 
@@ -100,10 +106,8 @@ def main() -> None:
     root = get_project_root()
 
     # Resolve config path under project root
-    config_path = Path(args.config)
-    if not config_path.is_absolute():
-        config_path = root / config_path
-    config_path = config_path.resolve()
+    config_path = resolve_under_root(args.config)
+
     # If user passed -k/--n-clusters, override n_clusters in the config
     overrides = {"train": {"n_clusters": args.k}} if args.k else None
     cfg = with_overrides(config_path, overrides)
@@ -142,48 +146,59 @@ def main() -> None:
     init = cfg["train"].get("init", "Cao")
     random_state = cfg["train"].get("random_state", 42)
 
-    log.info(
-        f"Training KProtoWrapper with n_clusters={n_clusters}, "
-        f"init={init}, random_state={random_state}"
-    )
-
-    model = KProtoWrapper(
-        n_clusters=n_clusters,
-        init=init,
-        random_state=random_state,
-        cat_cols=cat_cols,
-    )
-
-    labels = model.fit(work)
-    work["Cluster"] = labels
-
-    # Save clustered data (use YAML setting if present)
-    out_csv_cfg = cfg["train"].get(
-        "out_clustered_csv",
-        str(root / "data" / "processed" / "clustered.csv"),
-    )
-    out_csv = resolve_under_root(out_csv_cfg)
-    out_csv.parent.mkdir(parents=True, exist_ok=True)
-    work.to_csv(out_csv, index=False)
-    log.info(f"Saved clustered data -> {out_csv}")
-
     # Decide whether to save the model
     save_model_flag = args.save_model or cfg["train"].get("save_model", False)
 
-    if save_model_flag:
-        model_path_cfg = cfg["train"].get(
-            "model_path",
-            str(root / "models" / "kprototypes_model.joblib"),
-        )
-        model_path = resolve_under_root(model_path_cfg)
-        model_path.parent.mkdir(parents=True, exist_ok=True)
-        model.save(model_path)
-        log.info(f"Saved model -> {model_path}")
-    else:
+    # 🔹 MLflow integration starts here
+    mlflow.set_experiment("Clustering")
+
+    with mlflow.start_run(run_name="kprototypes"):
+        # Log parameters
+        mlflow.log_param("n_clusters", n_clusters)
+        mlflow.log_param("init", init)
+        mlflow.log_param("random_state", random_state)
+        mlflow.log_param("feature_columns", ",".join(keep))
+        mlflow.log_param("categorical_columns", ",".join(cat_cols))
+
         log.info(
-            "Model not saved (use --save-model flag or set train.save_model: true in config)."
+            f"Training KProtoWrapper with n_clusters={n_clusters}, "
+            f"init={init}, random_state={random_state}"
         )
 
+        model = KProtoWrapper(
+            n_clusters=n_clusters,
+            init=init,
+            random_state=random_state,
+            cat_cols=cat_cols,
+        )
 
-if __name__ == "__main__":
-    main()
+        labels = model.fit(work)
+        work["Cluster"] = labels
+
+        # Try to log a simple metric (K-Prototypes cost)
+        cost = getattr(model.model, "cost_", None)
+        if cost is not None:
+            mlflow.log_metric("kprototypes_cost", float(cost))
+
+        # Save clustered data
+        out_csv = root / "data" / "processed" / "clustered.csv"
+        out_csv.parent.mkdir(parents=True, exist_ok=True)
+        work.to_csv(out_csv, index=False)
+        log.info(f"Saved clustered data -> {out_csv}")
+
+        # Log clustered data as artifact
+        mlflow.log_artifact(str(out_csv), artifact_path="data")
+
+        if save_model_flag:
+            model_dir = root / "models"
+            model_dir.mkdir(parents=True, exist_ok=True)
+            model_path = model_dir / "kprototypes_model.joblib"
+            model.save(model_path)
+            log.info(f"Saved model -> {model_path}")
+
+            # Log model file as artifact
+            mlflow.log_artifact(str(model_path), artifact_path="models")
+        else:
+            log.info(
+                "Model not saved (use --save-model flag or set train.save_model: true in config)."
+            )
