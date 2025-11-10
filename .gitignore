@@ -13,3 +13,9 @@ models/
 
 # DVC cache
 .dvc/cache/
+# MLflow
+mlruns/
+mlflow-artifacts/
+mlartifacts/
+mlflow.db*
+.mlflow/
