@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score
 from sklearn.cluster import KMeans
-from utils.helpers import get_project_root, get_logger
+from src.utils.helpers import get_project_root, get_logger
 
 log = get_logger()
 
