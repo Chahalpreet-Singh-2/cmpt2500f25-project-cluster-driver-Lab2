@@ -1,0 +1,15 @@
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Data and models
+data/processed/
+models/
+!data/.gitkeep
+!models/.gitkeep
+
+# DVC cache
+.dvc/cache/
